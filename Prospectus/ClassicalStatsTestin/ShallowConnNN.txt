@@ -1,0 +1,143 @@
+Here is the code for a shallow fully connected neural network.
+
+ 
+
+## define functions
+
+import tensorflow as tf   
+
+from tensorflow import keras
+
+from tensorflow.keras import layers
+
+from tensorflow.keras import Input
+
+from tensorflow.keras.models import Model
+
+from tensorflow.keras.callbacks import ModelCheckpoint
+
+from tensorflow.keras import regularizers
+
+import tensorflow.keras.backend as K
+
+from tensorflow.keras.utils import to_categorical
+
+from tensorflow.keras.layers import Dropout, Activation, Reshape, Flatten, LSTM, Dense, Embedding, Bidirectional, GRU
+
+from tensorflow.keras import initializers, regularizers
+
+from tensorflow.keras import optimizers
+
+from tensorflow.keras import constraints
+
+from tensorflow.keras.layers import Layer, InputSpec
+
+ 
+
+def build_ann(nfeature, **kwargs):
+
+   
+
+    
+
+    regval = kwargs.get('regval', [1, 0.01])
+
+    numlayer = kwargs.get('layers',2)
+
+    neurons = kwargs.get('neurons',[16,6])
+
+    out_neurons = kwargs.get('out_neurons', 2)
+
+   
+
+    initializer = tf.keras.initializers.HeNormal()
+
+   
+
+    input_tensor = Input(shape=(nfeature,))
+
+    layer1 = layers.Dense(neurons[0],activation='relu',kernel_regularizer=regularizers.l2(regval[0]),kernel_initializer=initializer)(input_tensor)
+
+    if numlayer >=2:
+
+        print('layer ' + str(numlayer))
+
+        for i in range(1, numlayer):
+
+            layer1 = layers.Dense(neurons[i],activation='relu',kernel_regularizer=regularizers.l2(regval[i]),kernel_initializer=initializer)(layer1)    output_tensor = layers.Dense(out_neurons,activation='softmax')(layer1)
+
+    model = Model(input_tensor, output_tensor)
+
+    model.summary()                       
+
+return model
+
+ 
+
+ 
+
+def train_model(model, train_X, train_y, val_X, val_y, lr, callbacks_path, epochs, batch_size, class_weight):
+
+    opt = tf.keras.optimizers.Adam(learning_rate=lr)
+
+    decay_rate = lr / epochs
+
+    momentum = 0.8
+
+    #opt = tf.keras.optimizers.legacy.SGD(learning_rate=lr, momentum=momentum, decay=decay_rate, nesterov=False)
+
+    #opt = optimizers.SGD(learning_rate=lr)
+
+    model.compile(optimizer=opt,loss='categorical_crossentropy',metrics=['accuracy'])
+
+    callbacks_list = [
+
+        keras.callbacks.ModelCheckpoint(
+
+            filepath=callbacks_path,
+
+            monitor='val_accuracy',   #save_weights_only=True,
+
+            save_best_only=True,
+
+        )
+
+    ]
+
+    history = model.fit(
+
+        train_X, train_y,
+
+        batch_size=batch_size,
+
+        epochs=epochs,
+
+        validation_data=(val_X, val_y),
+
+        callbacks=callbacks_list,
+
+        verbose=False,
+
+        shuffle=True,
+
+        class_weight=class_weight
+
+    )
+
+    return history
+
+ 
+
+## use the defined functions:
+
+model = build_ann(mdim, layers=2, neurons=[64,16], regval=[0.01,0.0], out_neurons=n_cat)
+
+    callbacks_path = '/net/cfc/s2s/zhengwu/code/tmp/eof_anom_model_clim_'+str(ii)+'.h5'
+
+    batch_size = 500
+
+    epochs = 400
+
+    lr = 0.0006
+
+    history = train_model(model, X_train, Y_train, X_val, Y_val, lr, callbacks_path, epochs, batch_size, class_weight)
